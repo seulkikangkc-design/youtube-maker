@@ -4,9 +4,25 @@ import type { Bindings, AnalysisResult, User, VideoLog } from '../types'
 import { authMiddleware, type AuthContext } from '../middleware/auth'
 import { analyzeYouTubeCompetition } from '../services/youtube'
 import { analyzeWithGemini } from '../services/gemini'
+import { getTrendingKeywords } from '../services/trending'
+import { generateVideo } from '../services/video'
 
 const api = new Hono<{ Bindings: Bindings }>()
 
+// GET /api/trending - Get trending keywords (requires auth)
+api.get('/trending', authMiddleware, async (c) => {
+  try {
+    const count = parseInt(c.req.query('count') || '10')
+    const keywords = await getTrendingKeywords(c.env.YOUTUBE_API_KEY, count)
+    
+    return c.json({ keywords })
+  } catch (error) {
+    console.error('Trending keywords error:', error)
+    return c.json({ 
+      error: 'Failed to fetch trending keywords' 
+    }, 500)
+  }
+})
 // POST /api/analyze - Analyze keyword (no credit deduction)
 api.post('/analyze', authMiddleware, async (c) => {
   const authContext = c as AuthContext;
@@ -85,6 +101,15 @@ api.post('/video/create', authMiddleware, async (c) => {
       }, 400);
     }
     
+    // Generate video
+    const videoResult = await generateVideo(keyword, analysis);
+    
+    // Prepare extended analysis result with video URLs
+    const extendedAnalysis = {
+      ...analysis,
+      video: videoResult
+    };
+    
     // ATOMIC TRANSACTION: Deduct credits and create video log
     // Using D1's batch API for atomic operations
     const statements = [
@@ -99,11 +124,11 @@ api.post('/video/create', authMiddleware, async (c) => {
         VALUES (?, -100, ?)
       `).bind(userPayload.userId, `Video creation for keyword: ${keyword}`),
       
-      // Create video log
+      // Create video log with video URLs
       c.env.DB.prepare(`
         INSERT INTO video_logs (user_id, keyword, credits_used, status, analysis_result)
         VALUES (?, ?, 100, 'completed', ?)
-      `).bind(userPayload.userId, keyword, JSON.stringify(analysis))
+      `).bind(userPayload.userId, keyword, JSON.stringify(extendedAnalysis))
     ];
     
     const results = await c.env.DB.batch(statements);
@@ -128,6 +153,7 @@ api.post('/video/create', authMiddleware, async (c) => {
     return c.json({
       success: true,
       videoLogId,
+      video: videoResult,
       creditsRemaining: updatedUser.credits,
       videosCreated: updatedUser.videos_created,
       message: 'Video created successfully! 100 credits deducted.'

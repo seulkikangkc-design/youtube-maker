@@ -200,6 +200,25 @@ async function showDashboard() {
                     </div>
                 </div>
                 
+                <!-- Trending Keywords Section -->
+                <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl shadow-lg p-6 mb-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-fire mr-2 text-orange-600"></i>
+                            트렌드 키워드 추천
+                        </h2>
+                        <button onclick="loadTrendingKeywords()" id="refreshTrendBtn"
+                            class="px-4 py-2 bg-white text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition shadow-sm">
+                            <i class="fas fa-sync-alt mr-2"></i>새로고침
+                        </button>
+                    </div>
+                    <div id="trendingKeywords" class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                        <div class="col-span-full text-center py-4 text-gray-500">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>로딩 중...
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="bg-white rounded-2xl shadow-lg p-8 mb-6">
                     <h2 class="text-2xl font-bold text-gray-800 mb-6">
                         <i class="fas fa-search mr-2 text-blue-600"></i>
@@ -226,9 +245,52 @@ async function showDashboard() {
                 ${adminButton}
             </div>
         `;
+        
+        // Load trending keywords
+        loadTrendingKeywords();
     } catch (error) {
         console.error('Dashboard error:', error);
     }
+}
+
+// Load trending keywords
+async function loadTrendingKeywords() {
+    const container = document.getElementById('trendingKeywords');
+    const refreshBtn = document.getElementById('refreshTrendBtn');
+    
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+        refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>로딩 중';
+    }
+    
+    try {
+        const res = await axios.get(`${API_BASE}/api/trending?count=10`);
+        const keywords = res.data.keywords;
+        
+        container.innerHTML = keywords.map(k => `
+            <button onclick="selectKeyword('${k.keyword.replace(/'/g, "\\'")}')"
+                class="px-4 py-3 bg-white rounded-lg hover:bg-purple-100 transition shadow-sm border border-purple-200 text-left">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-medium text-gray-800 text-sm">${k.keyword}</span>
+                    ${k.source === 'trending' ? '<i class="fas fa-fire text-orange-500 text-xs"></i>' : '<i class="fas fa-lightbulb text-yellow-500 text-xs"></i>'}
+                </div>
+                <div class="text-xs text-gray-500">${k.category}</div>
+            </button>
+        `).join('');
+    } catch (error) {
+        container.innerHTML = '<div class="col-span-full text-center text-red-600">트렌드 로딩 실패</div>';
+    } finally {
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>새로고침';
+        }
+    }
+}
+
+function selectKeyword(keyword) {
+    document.getElementById('keyword').value = keyword;
+    document.getElementById('keyword').focus();
+    document.getElementById('keyword').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 let currentAnalysis = null;
@@ -333,7 +395,7 @@ async function createVideo() {
     
     const btn = document.getElementById('createVideoBtn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>생성 중...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>영상 생성 중...';
     
     try {
         const res = await axios.post(`${API_BASE}/api/video/create`, {
@@ -341,7 +403,11 @@ async function createVideo() {
             analysis: currentAnalysis.analysis
         });
         
-        alert(res.data.message);
+        const video = res.data.video;
+        
+        // Show success message with video info
+        alert(`${res.data.message}\n\n영상이 생성되었습니다!\n썸네일: ${video.thumbnailUrl}`);
+        
         showDashboard(); // Refresh dashboard
         
     } catch (error) {
