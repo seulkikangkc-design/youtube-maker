@@ -44,6 +44,7 @@ Return this exact JSON structure:
 If not worth creating, set worthCreating to false, videoConcepts to [], hookLine to "".
 IMPORTANT: Return ONLY the JSON object, no markdown, no explanation.`;
 
+    // Use gemini-2.5-flash (verified working with JSON mode)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(url, {
@@ -68,7 +69,11 @@ IMPORTANT: Return ONLY the JSON object, no markdown, no explanation.`;
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errText = await response.text();
+      console.error('❌ Gemini HTTP status:', response.status);
+      console.error('❌ Gemini error body:', errText);
+      console.error('❌ Request URL:', url.replace(apiKey, 'HIDDEN'));
+      throw new Error(`Gemini API error: ${response.status} - ${errText.substring(0, 200)}`);
     }
 
     const data = await response.json() as GeminiResponse;
