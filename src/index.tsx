@@ -58,7 +58,19 @@ app.get('/', (c) => {
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
-    <script src="/app.js"></script>
+    <script>
+      console.log('Axios loaded:', typeof axios !== 'undefined');
+      console.log('Loading app.js...');
+    </script>
+    <script src="/app.js" onerror="console.error('Failed to load app.js')" onload="console.log('app.js loaded')"></script>
+    <script>
+      setTimeout(() => {
+        if (document.getElementById('app').innerHTML.includes('로딩 중')) {
+          console.error('App initialization failed - still showing loading screen');
+          document.getElementById('app').innerHTML = '<div class="max-w-md mx-auto mt-20 p-8 bg-red-50 rounded-lg"><h1 class="text-xl font-bold text-red-600 mb-4">로딩 오류</h1><p>브라우저 콘솔(F12)을 열어 오류를 확인해주세요.</p></div>';
+        }
+      }, 3000);
+    </script>
 </body>
 </html>`;
   
