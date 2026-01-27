@@ -85,7 +85,7 @@ YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을
 - **Authentication**: JWT (Web Crypto API)
 - **External APIs**: 
   - YouTube Data API v3
-  - Google Gemini API (gemini-1.5-flash)
+  - Google Gemini API (gemini-2.5-flash)
 
 ## 📖 사용 방법
 
