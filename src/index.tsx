@@ -5,7 +5,26 @@ import auth from './routes/auth'
 import api from './routes/api'
 import admin from './routes/admin'
 
+// Import JS files as strings at build time
+import appJs from '../public/app.js?raw'
+import adminJs from '../public/admin.js?raw'
+
 const app = new Hono<{ Bindings: Bindings }>()
+
+// Serve JavaScript files
+app.get('/app.js', (c) => {
+  return c.text(appJs, 200, {
+    'Content-Type': 'application/javascript',
+    'Cache-Control': 'public, max-age=3600'
+  })
+})
+
+app.get('/admin.js', (c) => {
+  return c.text(adminJs, 200, {
+    'Content-Type': 'application/javascript',
+    'Cache-Control': 'public, max-age=3600'
+  })
+})
 
 // Enable CORS for API routes
 app.use('/auth/*', cors())
