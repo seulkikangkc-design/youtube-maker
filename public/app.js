@@ -301,15 +301,21 @@ async function analyzeKeyword(event) {
     const analyzeBtn = document.getElementById('analyzeBtn');
     const resultDiv = document.getElementById('analysisResult');
     
+    console.log('🔍 Analyzing keyword:', keyword);
+    
     analyzeBtn.disabled = true;
     analyzeBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>분석 중...';
     resultDiv.classList.add('hidden');
     
     try {
         const res = await axios.post(`${API_BASE}/api/analyze`, { keyword });
+        console.log('✅ Analysis response:', res.data);
         currentAnalysis = res.data;
         
         const { youtube, gemini } = res.data.analysis;
+        
+        console.log('YouTube data:', youtube);
+        console.log('Gemini data:', gemini);
         
         const videoConcepts = gemini.worthCreating 
             ? `<div class="mb-4">
@@ -318,17 +324,33 @@ async function analyzeKeyword(event) {
                     ${gemini.videoConcepts.map(c => `<li class="flex items-start"><i class="fas fa-check-circle text-green-600 mr-2 mt-1"></i><span>${c}</span></li>`).join('')}
                 </ul>
             </div>
-            <div class="bg-white rounded-lg p-4">
+            <div class="bg-white rounded-lg p-4 mb-4">
                 <h4 class="font-bold text-gray-800 mb-2">🎬 Hook Line (첫 3초):</h4>
                 <p class="text-lg text-blue-600 font-medium">"${gemini.hookLine}"</p>
             </div>`
             : '';
         
+        // 미디어 생성 버튼 추가
+        const mediaButtons = `
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <button onclick="generateImage()" id="generateImageBtn"
+                    class="py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg">
+                    <i class="fas fa-image mr-2"></i>
+                    이미지 생성 (50 크레딧)
+                </button>
+                <button onclick="generateVideoMedia()" id="generateVideoBtn"
+                    class="py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:from-purple-600 hover:to-indigo-600 transition shadow-lg">
+                    <i class="fas fa-film mr-2"></i>
+                    영상 생성 (200 크레딧)
+                </button>
+            </div>
+        `;
+        
         const createButton = gemini.worthCreating
             ? `<button onclick="createVideo()" id="createVideoBtn"
                 class="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition shadow-lg">
                 <i class="fas fa-video mr-2"></i>
-                영상 생성하기 (100 크레딧 차감)
+                영상 로그 생성 (100 크레딧 차감)
             </button>`
             : '';
         
@@ -376,13 +398,18 @@ async function analyzeKeyword(event) {
                     ${videoConcepts}
                 </div>
                 
+                ${mediaButtons}
                 ${createButton}
+                
+                <div id="mediaResult" class="hidden mt-6"></div>
             </div>
         `;
         
         resultDiv.classList.remove('hidden');
+        console.log('✅ Results displayed successfully');
         
     } catch (error) {
+        console.error('❌ Analysis error:', error);
         alert(error.response?.data?.error || '분석 실패');
     } finally {
         analyzeBtn.disabled = false;
@@ -413,7 +440,95 @@ async function createVideo() {
     } catch (error) {
         alert(error.response?.data?.error || '영상 생성 실패');
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-video mr-2"></i>영상 생성하기 (100 크레딧 차감)';
+        btn.innerHTML = '<i class="fas fa-video mr-2"></i>영상 로그 생성 (100 크레딧 차감)';
+    }
+}
+
+// Generate image using Gemini Imagen 3
+async function generateImage() {
+    if (!currentAnalysis) return;
+    
+    const btn = document.getElementById('generateImageBtn');
+    const mediaResult = document.getElementById('mediaResult');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>생성 중...';
+    
+    try {
+        const prompt = `Create a high-quality thumbnail image for a YouTube video about: ${currentAnalysis.keyword}. 
+Style: Eye-catching, professional, with bold text overlay. Korean market appeal.`;
+        
+        console.log('🎨 Generating image with prompt:', prompt);
+        
+        const res = await axios.post(`${API_BASE}/api/media/image`, { prompt });
+        
+        console.log('✅ Image generated:', res.data);
+        
+        mediaResult.innerHTML = `
+            <div class="bg-white rounded-xl p-6 shadow-lg">
+                <h4 class="font-bold text-gray-800 mb-4">
+                    <i class="fas fa-image text-pink-600 mr-2"></i>생성된 이미지
+                </h4>
+                <img src="${res.data.image.imageUrl}" class="w-full rounded-lg shadow-md" alt="Generated Image">
+                <p class="text-sm text-gray-600 mt-4">크레딧 차감: ${res.data.creditsDeducted}</p>
+            </div>
+        `;
+        mediaResult.classList.remove('hidden');
+        
+        // Refresh credits
+        await updateCredits();
+        
+    } catch (error) {
+        console.error('❌ Image generation error:', error);
+        alert(error.response?.data?.error || '이미지 생성 실패');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-image mr-2"></i>이미지 생성 (50 크레딧)';
+    }
+}
+
+// Generate video using Gemini Veo 2
+async function generateVideoMedia() {
+    if (!currentAnalysis) return;
+    
+    const btn = document.getElementById('generateVideoBtn');
+    const mediaResult = document.getElementById('mediaResult');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>생성 중 (30-60초)...';
+    
+    try {
+        const { gemini } = currentAnalysis.analysis;
+        const prompt = `Create a 5-second vertical video (9:16) for YouTube Shorts about: ${currentAnalysis.keyword}.
+Hook: ${gemini.hookLine}
+Style: Dynamic, attention-grabbing, professional quality.`;
+        
+        console.log('🎬 Generating video with prompt:', prompt);
+        
+        const res = await axios.post(`${API_BASE}/api/media/video`, { prompt });
+        
+        console.log('✅ Video generated:', res.data);
+        
+        mediaResult.innerHTML = `
+            <div class="bg-white rounded-xl p-6 shadow-lg">
+                <h4 class="font-bold text-gray-800 mb-4">
+                    <i class="fas fa-film text-purple-600 mr-2"></i>생성된 영상
+                </h4>
+                <video src="${res.data.video.videoUrl}" controls class="w-full rounded-lg shadow-md" style="max-height: 500px;"></video>
+                <p class="text-sm text-gray-600 mt-4">크레딧 차감: ${res.data.creditsDeducted}</p>
+            </div>
+        `;
+        mediaResult.classList.remove('hidden');
+        
+        // Refresh credits
+        await updateCredits();
+        
+    } catch (error) {
+        console.error('❌ Video generation error:', error);
+        alert(error.response?.data?.error || '영상 생성 실패');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-film mr-2"></i>영상 생성 (200 크레딧)';
     }
 }
 
