@@ -26,25 +26,17 @@ export async function analyzeWithGemini(
   apiKey: string
 ): Promise<GeminiAnalysis> {
   try {
-    const prompt = `Evaluate whether to create a short video for this keyword. Return ONLY valid JSON, no other text.
-
+    const prompt = `Evaluate whether to create a short video for this keyword.
+    
 Keyword: "${keyword}"
 YouTube search results: ${youtubeData.totalResults}
 Average views: ${youtubeData.avgViews}
 Recent videos (30 days): ${youtubeData.recentVideos}
 
-Return this exact JSON structure:
-{
-  "worthCreating": true,
-  "reasoning": "detailed analysis of competition and opportunity",
-  "videoConcepts": ["concept 1", "concept 2", "concept 3"],
-  "hookLine": "compelling 3-second hook"
-}
+Analyze the competition and opportunity.
+If not worth creating, set worthCreating to false, videoConcepts to [], hookLine to "".`;
 
-If not worth creating, set worthCreating to false, videoConcepts to [], hookLine to "".
-IMPORTANT: Return ONLY the JSON object, no markdown, no explanation.`;
-
-    // Use gemini-2.5-flash (verified working with JSON mode)
+    // Use gemini-2.5-flash (verified as available model)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
     const response = await fetch(url, {
@@ -63,7 +55,21 @@ IMPORTANT: Return ONLY the JSON object, no markdown, no explanation.`;
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 1024,
-          responseMimeType: "application/json"
+          responseMimeType: "application/json",
+          // Explicit schema definition for guaranteed structure
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              worthCreating: { type: "BOOLEAN" },
+              reasoning: { type: "STRING" },
+              videoConcepts: { 
+                type: "ARRAY",
+                items: { type: "STRING" }
+              },
+              hookLine: { type: "STRING" }
+            },
+            required: ["worthCreating", "reasoning", "videoConcepts", "hookLine"]
+          }
         }
       })
     });
@@ -82,12 +88,14 @@ IMPORTANT: Return ONLY the JSON object, no markdown, no explanation.`;
       throw new Error('No response from Gemini API');
     }
 
-    const text = data.candidates[0].content.parts[0].text;
+    let text = data.candidates[0].content.parts[0].text;
     
-    console.log('Gemini raw response length:', text.length);
-    console.log('Gemini raw response:', text.substring(0, 300));
+    // Safety: Remove markdown code blocks if present
+    // Handles: ```json { ... } ``` or ``` { ... } ```
+    text = text.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
     
-    // With responseMimeType: "application/json", Gemini returns pure JSON
+    console.log('Gemini raw response:', text.substring(0, 100) + '...');
+    
     const analysis = JSON.parse(text) as GeminiAnalysis;
     
     // Validate response structure
