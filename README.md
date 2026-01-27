@@ -53,11 +53,32 @@ YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을
 
 ### 아직 구현되지 않은 기능
 
-- 실제 영상 생성 (현재 placeholder)
+- 실제 영상 생성 API 연동 (현재 placeholder - GenSpark API 연동 필요)
 - YouTube 자동 업로드
 - 결제 시스템 (Payment)
 - 팀 계정 기능
 - 다국어 지원
+
+## 🎥 Gemini API 통합 상세
+
+### JSON 모드 사용
+- `responseMimeType: "application/json"` 설정으로 순수 JSON 응답 보장
+- 마크다운 코드 블록 파싱 불필요
+- 안정적인 데이터 처리
+
+### 분석 결과 구조
+```json
+{
+  "worthCreating": true,
+  "reasoning": "상세한 분석 및 추천 근거",
+  "videoConcepts": [
+    "콘셉트 1: 구체적인 영상 아이디어",
+    "콘셉트 2: 대안적 접근 방식",
+    "콘셉트 3: 차별화 전략"
+  ],
+  "hookLine": "시청자의 관심을 끄는 첫 3초 대사"
+}
+```
 
 ## 🏗️ 데이터 구조
 
@@ -85,7 +106,7 @@ YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을
 - **Authentication**: JWT (Web Crypto API)
 - **External APIs**: 
   - YouTube Data API v3
-  - Google Gemini API (gemini-2.5-flash)
+  - Google Gemini API (gemini-2.5-flash with JSON mode)
 
 ## 📖 사용 방법
 
@@ -218,12 +239,24 @@ webapp/
 
 - ✅ 인증 시스템: 완료
 - ✅ YouTube API 통합: 완료
-- ✅ Gemini API 통합: 완료
+- ✅ Gemini API 통합: 완료 (JSON 모드)
+- ✅ 트렌드 키워드 추천: 완료
 - ✅ 크레딧 시스템: 완료
 - ✅ 관리자 패널: 완료
 - ✅ Frontend UI: 완료
-- ⏸️ 실제 영상 생성: 미구현 (mock)
+- ⏸️ 실제 영상 생성: Mock 구현 (GenSpark API 연동 필요)
 - ⏸️ 결제 시스템: 미구현
+
+## 🐛 최근 수정 사항
+
+### 2026-01-27 오후
+- ✅ Gemini JSON 파싱 안정화
+  - `responseMimeType: "application/json"` 적용
+  - 마크다운 코드 블록 파싱 제거
+  - 순수 JSON 응답으로 파싱 안정성 향상
+- ✅ 트렌드 키워드 추천 기능 추가
+- ✅ 영상 생성 플로우 구현 (Mock)
+- ✅ 정적 파일 서빙 문제 해결
 
 ## 🤝 기여
 
