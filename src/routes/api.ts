@@ -6,8 +6,7 @@ import { analyzeYouTubeCompetition } from '../services/youtube'
 import { analyzeWithGemini } from '../services/gemini'
 import { getTrendingKeywords } from '../services/trending'
 import { generateVideo } from '../services/video'
-import { generateImage, generateVideo as generateVertexVideo } from '../services/vertexai'
-import { getGoogleCloudAccessToken } from '../services/google-auth'
+import { generateVideoWithGenSpark, generateImageWithGenSpark } from '../services/genspark-media'
 
 const api = new Hono<{ Bindings: Bindings }>()
 
@@ -219,14 +218,10 @@ api.post('/media/image', authMiddleware, async (c) => {
     
     console.log('🎨 Generating image for user:', userPayload.email);
     
-    // Get Google Cloud access token
-    const accessToken = await getGoogleCloudAccessToken(c.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
-    
-    // Generate image using Vertex AI
-    const imageResult = await generateImage(
+    // Generate image using GenSpark API
+    const imageResult = await generateImageWithGenSpark(
       prompt,
-      accessToken,
-      c.env.VERTEX_AI_PROJECT_ID
+      c.env.GENSPARK_API_KEY
     );
     
     // Deduct 50 credits
@@ -287,14 +282,10 @@ api.post('/media/video', authMiddleware, async (c) => {
     
     console.log('🎬 Generating video for user:', userPayload.email);
     
-    // Get Google Cloud access token
-    const accessToken = await getGoogleCloudAccessToken(c.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
-    
-    // Generate video using Vertex AI
-    const videoResult = await generateVertexVideo(
+    // Generate video using GenSpark API
+    const videoResult = await generateVideoWithGenSpark(
       prompt,
-      accessToken,
-      c.env.VERTEX_AI_PROJECT_ID
+      c.env.GENSPARK_API_KEY
     );
     
     // Deduct 200 credits
