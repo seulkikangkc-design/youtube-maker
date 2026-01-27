@@ -6,8 +6,7 @@ import { analyzeYouTubeCompetition } from '../services/youtube'
 import { analyzeWithGemini } from '../services/gemini'
 import { getTrendingKeywords } from '../services/trending'
 import { generateVideo } from '../services/video'
-// Note: Image/Video generation via Gemini API is not yet available
-// import { generateImage, generateVideo as generateMediaVideo } from '../services/media-generation'
+import { generateImage, generateVideo as generateVertexVideo } from '../services/vertexai'
 
 const api = new Hono<{ Bindings: Bindings }>()
 
@@ -189,23 +188,135 @@ api.get('/videos', authMiddleware, async (c) => {
   }
 })
 
-// Note: Image/Video generation endpoints are disabled
-// Gemini API does not support Imagen or Veo models via public API yet
-/*
-// POST /api/media/image - Generate image using Gemini Imagen 3
+// POST /api/media/image - Generate image using Vertex AI Imagen 3
 api.post('/media/image', authMiddleware, async (c) => {
-  return c.json({ 
-    error: 'Image generation is not yet available. Coming soon!' 
-  }, 501);
+  const authContext = c as AuthContext;
+  const userPayload = authContext.get('user');
+  
+  try {
+    const { prompt } = await c.req.json();
+    
+    if (!prompt || typeof prompt !== 'string') {
+      return c.json({ error: 'Prompt is required' }, 400);
+    }
+    
+    // Get current user
+    const user = await c.env.DB.prepare(
+      'SELECT credits FROM users WHERE id = ?'
+    ).bind(userPayload.userId).first() as Pick<User, 'credits'> | null;
+    
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Check credits (50 credits for image generation)
+    if (user.credits < 50) {
+      return c.json({ 
+        error: 'Insufficient credits. You need at least 50 credits for image generation.' 
+      }, 400);
+    }
+    
+    console.log('🎨 Generating image for user:', userPayload.email);
+    
+    // Generate image using Vertex AI
+    const imageResult = await generateImage(
+      prompt,
+      c.env.VERTEX_AI_API_KEY,
+      c.env.VERTEX_AI_PROJECT_ID
+    );
+    
+    // Deduct 50 credits
+    const statements = [
+      c.env.DB.prepare(
+        'UPDATE users SET credits = credits - 50 WHERE id = ?'
+      ).bind(userPayload.userId),
+      
+      c.env.DB.prepare(`
+        INSERT INTO credit_logs (user_id, change_amount, reason)
+        VALUES (?, -50, ?)
+      `).bind(userPayload.userId, `Image generation: ${prompt.substring(0, 50)}...`)
+    ];
+    
+    await c.env.DB.batch(statements);
+    
+    return c.json({
+      success: true,
+      image: imageResult,
+      creditsDeducted: 50
+    });
+    
+  } catch (error) {
+    console.error('Image generation error:', error);
+    return c.json({ 
+      error: 'Failed to generate image. Please try again.' 
+    }, 500);
+  }
 })
 
-// POST /api/media/video - Generate video using Gemini Veo 2
+// POST /api/media/video - Generate video using Vertex AI Veo 2
 api.post('/media/video', authMiddleware, async (c) => {
-  return c.json({ 
-    error: 'Video generation is not yet available. Coming soon!' 
-  }, 501);
+  const authContext = c as AuthContext;
+  const userPayload = authContext.get('user');
+  
+  try {
+    const { prompt } = await c.req.json();
+    
+    if (!prompt || typeof prompt !== 'string') {
+      return c.json({ error: 'Prompt is required' }, 400);
+    }
+    
+    // Get current user
+    const user = await c.env.DB.prepare(
+      'SELECT credits FROM users WHERE id = ?'
+    ).bind(userPayload.userId).first() as Pick<User, 'credits'> | null;
+    
+    if (!user) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Check credits (200 credits for video generation)
+    if (user.credits < 200) {
+      return c.json({ 
+        error: 'Insufficient credits. You need at least 200 credits for video generation.' 
+      }, 400);
+    }
+    
+    console.log('🎬 Generating video for user:', userPayload.email);
+    
+    // Generate video using Vertex AI
+    const videoResult = await generateVertexVideo(
+      prompt,
+      c.env.VERTEX_AI_API_KEY,
+      c.env.VERTEX_AI_PROJECT_ID
+    );
+    
+    // Deduct 200 credits
+    const statements = [
+      c.env.DB.prepare(
+        'UPDATE users SET credits = credits - 200 WHERE id = ?'
+      ).bind(userPayload.userId),
+      
+      c.env.DB.prepare(`
+        INSERT INTO credit_logs (user_id, change_amount, reason)
+        VALUES (?, -200, ?)
+      `).bind(userPayload.userId, `Video generation: ${prompt.substring(0, 50)}...`)
+    ];
+    
+    await c.env.DB.batch(statements);
+    
+    return c.json({
+      success: true,
+      video: videoResult,
+      creditsDeducted: 200
+    });
+    
+  } catch (error) {
+    console.error('Video generation error:', error);
+    return c.json({ 
+      error: 'Failed to generate video. Please try again.' 
+    }, 500);
+  }
 })
-*/
 
 // GET /api/credits - Get user's credit info
 api.get('/credits', authMiddleware, async (c) => {
