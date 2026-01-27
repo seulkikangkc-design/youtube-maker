@@ -330,19 +330,28 @@ async function analyzeKeyword(event) {
             </div>`
             : '';
         
-        // 미디어 생성 버튼 추가
+        // 미디어 생성 버튼 (준비 중)
         const mediaButtons = `
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <button onclick="generateImage()" id="generateImageBtn"
-                    class="py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-lg">
-                    <i class="fas fa-image mr-2"></i>
-                    이미지 생성 (50 크레딧)
-                </button>
-                <button onclick="generateVideoMedia()" id="generateVideoBtn"
-                    class="py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:from-purple-600 hover:to-indigo-600 transition shadow-lg">
-                    <i class="fas fa-film mr-2"></i>
-                    영상 생성 (200 크레딧)
-                </button>
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-4">
+                <h4 class="font-bold text-gray-800 mb-3">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    이미지/영상 생성 (준비 중)
+                </h4>
+                <p class="text-sm text-gray-600 mb-4">
+                    AI 이미지 및 영상 생성 기능은 현재 개발 중입니다. 곧 만나보실 수 있습니다!
+                </p>
+                <div class="grid grid-cols-2 gap-4 opacity-50">
+                    <button disabled
+                        class="py-4 bg-gray-300 text-gray-500 rounded-xl font-bold cursor-not-allowed">
+                        <i class="fas fa-image mr-2"></i>
+                        이미지 생성 (준비 중)
+                    </button>
+                    <button disabled
+                        class="py-4 bg-gray-300 text-gray-500 rounded-xl font-bold cursor-not-allowed">
+                        <i class="fas fa-film mr-2"></i>
+                        영상 생성 (준비 중)
+                    </button>
+                </div>
             </div>
         `;
         

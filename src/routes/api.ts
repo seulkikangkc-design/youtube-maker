@@ -6,7 +6,8 @@ import { analyzeYouTubeCompetition } from '../services/youtube'
 import { analyzeWithGemini } from '../services/gemini'
 import { getTrendingKeywords } from '../services/trending'
 import { generateVideo } from '../services/video'
-import { generateImage, generateVideo as generateMediaVideo } from '../services/media-generation'
+// Note: Image/Video generation via Gemini API is not yet available
+// import { generateImage, generateVideo as generateMediaVideo } from '../services/media-generation'
 
 const api = new Hono<{ Bindings: Bindings }>()
 
@@ -188,109 +189,23 @@ api.get('/videos', authMiddleware, async (c) => {
   }
 })
 
+// Note: Image/Video generation endpoints are disabled
+// Gemini API does not support Imagen or Veo models via public API yet
+/*
 // POST /api/media/image - Generate image using Gemini Imagen 3
 api.post('/media/image', authMiddleware, async (c) => {
-  const authContext = c as AuthContext;
-  const userPayload = authContext.get('user');
-  
-  try {
-    const { prompt } = await c.req.json();
-    
-    if (!prompt || typeof prompt !== 'string') {
-      return c.json({ error: 'Prompt is required' }, 400);
-    }
-    
-    // Check user credits (50 credits for image)
-    const user = await c.env.DB.prepare(
-      'SELECT credits FROM users WHERE id = ?'
-    ).bind(userPayload.userId).first() as User;
-    
-    if (!user || user.credits < 50) {
-      return c.json({ 
-        error: 'Insufficient credits. You need at least 50 credits to generate an image.' 
-      }, 400);
-    }
-    
-    // Generate image
-    console.log('🎨 Generating image with prompt:', prompt.substring(0, 100));
-    const imageResult = await generateImage(prompt, c.env.GEMINI_API_KEY);
-    
-    // Deduct credits
-    await c.env.DB.prepare(
-      'UPDATE users SET credits = credits - 50 WHERE id = ?'
-    ).bind(userPayload.userId).run();
-    
-    // Log credit change
-    await c.env.DB.prepare(`
-      INSERT INTO credit_logs (user_id, change_amount, reason)
-      VALUES (?, -50, ?)
-    `).bind(userPayload.userId, `Image generation: ${prompt.substring(0, 50)}`).run();
-    
-    return c.json({
-      success: true,
-      image: imageResult,
-      creditsDeducted: 50
-    });
-    
-  } catch (error) {
-    console.error('Image generation error:', error);
-    return c.json({ 
-      error: error instanceof Error ? error.message : 'Failed to generate image' 
-    }, 500);
-  }
+  return c.json({ 
+    error: 'Image generation is not yet available. Coming soon!' 
+  }, 501);
 })
 
 // POST /api/media/video - Generate video using Gemini Veo 2
 api.post('/media/video', authMiddleware, async (c) => {
-  const authContext = c as AuthContext;
-  const userPayload = authContext.get('user');
-  
-  try {
-    const { prompt } = await c.req.json();
-    
-    if (!prompt || typeof prompt !== 'string') {
-      return c.json({ error: 'Prompt is required' }, 400);
-    }
-    
-    // Check user credits (200 credits for video)
-    const user = await c.env.DB.prepare(
-      'SELECT credits FROM users WHERE id = ?'
-    ).bind(userPayload.userId).first() as User;
-    
-    if (!user || user.credits < 200) {
-      return c.json({ 
-        error: 'Insufficient credits. You need at least 200 credits to generate a video.' 
-      }, 400);
-    }
-    
-    // Generate video
-    console.log('🎬 Generating video with prompt:', prompt.substring(0, 100));
-    const videoResult = await generateMediaVideo(prompt, c.env.GEMINI_API_KEY);
-    
-    // Deduct credits
-    await c.env.DB.prepare(
-      'UPDATE users SET credits = credits - 200 WHERE id = ?'
-    ).bind(userPayload.userId).run();
-    
-    // Log credit change
-    await c.env.DB.prepare(`
-      INSERT INTO credit_logs (user_id, change_amount, reason)
-      VALUES (?, -200, ?)
-    `).bind(userPayload.userId, `Video generation: ${prompt.substring(0, 50)}`).run();
-    
-    return c.json({
-      success: true,
-      video: videoResult,
-      creditsDeducted: 200
-    });
-    
-  } catch (error) {
-    console.error('Video generation error:', error);
-    return c.json({ 
-      error: error instanceof Error ? error.message : 'Failed to generate video' 
-    }, 500);
-  }
+  return c.json({ 
+    error: 'Video generation is not yet available. Coming soon!' 
+  }, 501);
 })
+*/
 
 // GET /api/credits - Get user's credit info
 api.get('/credits', authMiddleware, async (c) => {
