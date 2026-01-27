@@ -87,16 +87,20 @@ If not worth creating, provide empty array for videoConcepts and empty string fo
     
     // Extract JSON from response (handle markdown code blocks)
     let jsonText = text.trim();
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.substring(7);
-    }
-    if (jsonText.startsWith('```')) {
-      jsonText = jsonText.substring(3);
-    }
-    if (jsonText.endsWith('```')) {
-      jsonText = jsonText.substring(0, jsonText.length - 3);
-    }
+    
+    // Remove markdown code blocks
+    jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
     jsonText = jsonText.trim();
+    
+    // Find the first { and last }
+    const firstBrace = jsonText.indexOf('{');
+    const lastBrace = jsonText.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error('No valid JSON found in Gemini response');
+    }
+    
+    jsonText = jsonText.substring(firstBrace, lastBrace + 1);
     
     const analysis = JSON.parse(jsonText) as GeminiAnalysis;
     
