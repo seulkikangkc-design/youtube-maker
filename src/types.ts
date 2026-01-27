@@ -3,7 +3,6 @@ export type Bindings = {
   DB: D1Database;
   YOUTUBE_API_KEY: string;
   GEMINI_API_KEY: string;
-  GENSPARK_API_KEY: string;
   JWT_SECRET: string;
 }
 

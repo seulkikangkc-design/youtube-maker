@@ -218,11 +218,8 @@ api.post('/media/image', authMiddleware, async (c) => {
     
     console.log('🎨 Generating image for user:', userPayload.email);
     
-    // Generate image using GenSpark API
-    const imageResult = await generateImageWithGenSpark(
-      prompt,
-      c.env.GENSPARK_API_KEY
-    );
+    // Generate image (placeholder for now)
+    const imageResult = await generateImageWithGenSpark(prompt);
     
     // Deduct 50 credits
     const statements = [
@@ -282,11 +279,8 @@ api.post('/media/video', authMiddleware, async (c) => {
     
     console.log('🎬 Generating video for user:', userPayload.email);
     
-    // Generate video using GenSpark API
-    const videoResult = await generateVideoWithGenSpark(
-      prompt,
-      c.env.GENSPARK_API_KEY
-    );
+    // Generate video (placeholder for now)
+    const videoResult = await generateVideoWithGenSpark(prompt);
     
     // Deduct 200 credits
     const statements = [
