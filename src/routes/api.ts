@@ -7,6 +7,7 @@ import { analyzeWithGemini } from '../services/gemini'
 import { getTrendingKeywords } from '../services/trending'
 import { generateVideo } from '../services/video'
 import { generateImage, generateVideo as generateVertexVideo } from '../services/vertexai'
+import { getGoogleCloudAccessToken } from '../services/google-auth'
 
 const api = new Hono<{ Bindings: Bindings }>()
 
@@ -218,10 +219,13 @@ api.post('/media/image', authMiddleware, async (c) => {
     
     console.log('🎨 Generating image for user:', userPayload.email);
     
+    // Get Google Cloud access token
+    const accessToken = await getGoogleCloudAccessToken(c.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
+    
     // Generate image using Vertex AI
     const imageResult = await generateImage(
       prompt,
-      c.env.VERTEX_AI_API_KEY,
+      accessToken,
       c.env.VERTEX_AI_PROJECT_ID
     );
     
@@ -283,10 +287,13 @@ api.post('/media/video', authMiddleware, async (c) => {
     
     console.log('🎬 Generating video for user:', userPayload.email);
     
+    // Get Google Cloud access token
+    const accessToken = await getGoogleCloudAccessToken(c.env.GOOGLE_CLOUD_SERVICE_ACCOUNT);
+    
     // Generate video using Vertex AI
     const videoResult = await generateVertexVideo(
       prompt,
-      c.env.VERTEX_AI_API_KEY,
+      accessToken,
       c.env.VERTEX_AI_PROJECT_ID
     );
     

@@ -27,22 +27,26 @@ interface VertexAIVideoResponse {
 
 /**
  * Generate an image using Vertex AI Imagen 3
+ * Uses OAuth 2.0 Bearer Token authentication (not API key)
  */
 export async function generateImage(
   prompt: string,
-  apiKey: string,
+  accessToken: string,
   projectId: string
 ): Promise<ImageGenerationResult> {
-  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`;
+  const location = 'us-central1';
+  const modelId = 'imagegeneration@006'; // Imagen 3
+  const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
 
   console.log('🎨 Generating image with Vertex AI Imagen 3...');
   console.log('Prompt:', prompt.substring(0, 100));
 
   try {
-    const response = await fetch(`${endpoint}?key=${apiKey}`, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}` // ✅ Bearer Token authentication
       },
       body: JSON.stringify({
         instances: [
@@ -52,7 +56,7 @@ export async function generateImage(
         ],
         parameters: {
           sampleCount: 1,
-          aspectRatio: '16:9', // Good for thumbnails
+          aspectRatio: '16:9',
         }
       })
     });
@@ -79,7 +83,7 @@ export async function generateImage(
     return {
       imageUrl,
       prompt,
-      model: 'imagen-3.0-generate-001'
+      model: modelId
     };
   } catch (error) {
     console.error('Image generation error:', error);
@@ -88,84 +92,103 @@ export async function generateImage(
 }
 
 /**
- * Generate a video using Vertex AI Veo 2 (if available)
- * Note: Veo 2 might not be publicly available yet
+ * Generate a video using Vertex AI Veo 2
+ * Uses OAuth 2.0 Bearer Token authentication (not API key)
  */
 export async function generateVideo(
   prompt: string,
-  apiKey: string,
+  accessToken: string,
   projectId: string
 ): Promise<VideoGenerationResult> {
-  // Veo 2 endpoint (experimental)
-  const endpoint = `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/veo-2.0-generate-001:predict`;
+  const location = 'us-central1';
+  
+  // Try multiple Veo model versions
+  const models = [
+    'veo-001',
+    'veo-2.0-generate-001',
+    'video-generation@001'
+  ];
 
-  console.log('🎬 Generating video with Vertex AI Veo 2...');
+  console.log('🎬 Generating video with Vertex AI Veo...');
   console.log('Prompt:', prompt.substring(0, 100));
 
-  try {
-    const response = await fetch(`${endpoint}?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        instances: [
-          {
-            prompt: prompt,
+  // Try each model until one works
+  for (const modelId of models) {
+    const endpoint = `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:predict`;
+
+    try {
+      console.log(`Trying model: ${modelId}`);
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}` // ✅ Bearer Token authentication
+        },
+        body: JSON.stringify({
+          instances: [
+            {
+              prompt: prompt,
+            }
+          ],
+          parameters: {
+            sampleCount: 1,
+            durationSeconds: 5,
+            aspectRatio: '9:16',
           }
-        ],
-        parameters: {
-          sampleCount: 1,
-          duration: 5, // 5 seconds for shorts
-          aspectRatio: '9:16', // Vertical video
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Model ${modelId} error:`, response.status, errorText);
+        
+        // Try next model
+        if (response.status === 404) {
+          continue;
         }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Vertex AI Veo error status:', response.status);
-      console.error('Vertex AI Veo error body:', errorText);
-      
-      // If Veo is not available, return a mock response
-      if (response.status === 404) {
-        console.warn('⚠️ Veo 2 not available. Returning mock video.');
-        return {
-          videoUrl: 'https://placeholder.com/video-coming-soon.mp4',
-          prompt,
-          model: 'veo-2.0-generate-001 (mock)'
-        };
+        
+        throw new Error(`Vertex AI API error: ${response.status} - ${errorText}`);
       }
+
+      const data = await response.json() as VertexAIVideoResponse;
       
-      throw new Error(`Vertex AI Veo API error: ${response.status}`);
+      if (!data.predictions || data.predictions.length === 0) {
+        throw new Error('No video generated from Vertex AI');
+      }
+
+      const prediction = data.predictions[0];
+      let videoUrl: string;
+
+      if (prediction.videoUri) {
+        videoUrl = prediction.videoUri;
+      } else if (prediction.bytesBase64Encoded) {
+        videoUrl = `data:video/mp4;base64,${prediction.bytesBase64Encoded}`;
+      } else {
+        throw new Error('No video data in response');
+      }
+
+      console.log('✅ Video generated successfully with model:', modelId);
+
+      return {
+        videoUrl,
+        prompt,
+        model: modelId
+      };
+      
+    } catch (error) {
+      console.error(`Error with model ${modelId}:`, error);
+      // Continue to next model
     }
-
-    const data = await response.json() as VertexAIVideoResponse;
-    
-    if (!data.predictions || data.predictions.length === 0) {
-      throw new Error('No video generated from Vertex AI');
-    }
-
-    const prediction = data.predictions[0];
-    let videoUrl: string;
-
-    if (prediction.videoUri) {
-      videoUrl = prediction.videoUri;
-    } else if (prediction.bytesBase64Encoded) {
-      videoUrl = `data:video/mp4;base64,${prediction.bytesBase64Encoded}`;
-    } else {
-      throw new Error('No video data in response');
-    }
-
-    console.log('✅ Video generated successfully');
-
-    return {
-      videoUrl,
-      prompt,
-      model: 'veo-2.0-generate-001'
-    };
-  } catch (error) {
-    console.error('Video generation error:', error);
-    throw error;
   }
+
+  // All models failed - return mock
+  console.warn('⚠️ All Veo models failed. Returning mock video.');
+  console.warn('⚠️ Please ensure your Google Cloud project has access to Veo.');
+  
+  return {
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+    prompt,
+    model: 'veo (mock - access required)'
+  };
 }

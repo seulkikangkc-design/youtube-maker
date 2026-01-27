@@ -3,7 +3,7 @@ export type Bindings = {
   DB: D1Database;
   YOUTUBE_API_KEY: string;
   GEMINI_API_KEY: string;
-  VERTEX_AI_API_KEY: string;
+  GOOGLE_CLOUD_SERVICE_ACCOUNT: string; // JSON string of service account credentials
   VERTEX_AI_PROJECT_ID: string;
   JWT_SECRET: string;
 }
