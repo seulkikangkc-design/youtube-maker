@@ -26,30 +26,23 @@ export async function analyzeWithGemini(
   apiKey: string
 ): Promise<GeminiAnalysis> {
   try {
-    const prompt = `You are evaluating whether a product keyword is worth creating a short-form introduction video for.
+    const prompt = `Evaluate whether to create a short video for this keyword. Return ONLY valid JSON, no other text.
 
-Input:
-- Keyword: "${keyword}"
-- Total YouTube search results: ${youtubeData.totalResults}
-- Average views of existing videos: ${youtubeData.avgViews}
-- Videos published in last 30 days: ${youtubeData.recentVideos}
-- Target platform: YouTube Shorts, TikTok, Instagram Reels
+Keyword: "${keyword}"
+YouTube search results: ${youtubeData.totalResults}
+Average views: ${youtubeData.avgViews}
+Recent videos (30 days): ${youtubeData.recentVideos}
 
-Analyze this data and provide:
-1. A clear YES or NO on whether it's worth creating a video
-2. Your reasoning (consider competition level, audience demand, and market saturation)
-3. Three specific video concept ideas (if worthwhile)
-4. A compelling hook line for the first 3 seconds (if worthwhile)
-
-Return your answer in this exact JSON format:
+Return this exact JSON structure:
 {
-  "worthCreating": true or false,
-  "reasoning": "your detailed reasoning here",
+  "worthCreating": true,
+  "reasoning": "detailed analysis of competition and opportunity",
   "videoConcepts": ["concept 1", "concept 2", "concept 3"],
-  "hookLine": "your hook line here"
+  "hookLine": "compelling 3-second hook"
 }
 
-If not worth creating, provide empty array for videoConcepts and empty string for hookLine.`;
+If not worth creating, set worthCreating to false, videoConcepts to [], hookLine to "".
+IMPORTANT: Return ONLY the JSON object, no markdown, no explanation.`;
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
@@ -69,6 +62,7 @@ If not worth creating, provide empty array for videoConcepts and empty string fo
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 1024,
+          responseMimeType: "application/json"
         }
       })
     });
@@ -85,24 +79,11 @@ If not worth creating, provide empty array for videoConcepts and empty string fo
 
     const text = data.candidates[0].content.parts[0].text;
     
-    // Extract JSON from response (handle markdown code blocks)
-    let jsonText = text.trim();
+    console.log('Gemini raw response length:', text.length);
+    console.log('Gemini raw response:', text.substring(0, 300));
     
-    // Remove markdown code blocks
-    jsonText = jsonText.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-    jsonText = jsonText.trim();
-    
-    // Find the first { and last }
-    const firstBrace = jsonText.indexOf('{');
-    const lastBrace = jsonText.lastIndexOf('}');
-    
-    if (firstBrace === -1 || lastBrace === -1) {
-      throw new Error('No valid JSON found in Gemini response');
-    }
-    
-    jsonText = jsonText.substring(firstBrace, lastBrace + 1);
-    
-    const analysis = JSON.parse(jsonText) as GeminiAnalysis;
+    // With responseMimeType: "application/json", Gemini returns pure JSON
+    const analysis = JSON.parse(text) as GeminiAnalysis;
     
     // Validate response structure
     if (typeof analysis.worthCreating !== 'boolean') {
