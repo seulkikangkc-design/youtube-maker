@@ -1,16 +1,17 @@
-# Low-Competition Video Finder & Generator
+# 🎨 YouTube Thumbnail Maker - AI 썸네일 제작기
 
-YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을 자동으로 찾고, Gemini 기반 기획 + 영상 생성까지 연결하는 자동화 플랫폼
+YouTube 경쟁도 분석과 AI 기반 썸네일 자동 생성 플랫폼
 
 ## 🎯 프로젝트 개요
 
-- **이름**: Low-Competition Video Finder & Generator
-- **목표**: YouTube 경쟁도 분석과 AI 기반 영상 기획을 통한 콘텐츠 제작 지원
-- **대상 사용자**: 1인 크리에이터, AI 실험가, Affiliate 마케터, 커머스 셀러
+- **이름**: YouTube Thumbnail Maker
+- **목표**: YouTube 키워드 분석 + AI 기반 자극적인 한글 제목이 포함된 16:9 썸네일 자동 생성
+- **대상 사용자**: 1인 크리에이터, 유튜버, 콘텐츠 마케터
 
 ## 🌐 URL
 
 - **개발 서버**: https://3000-ib1vrhp3boc20p22c1s5d-2b54fc91.sandbox.novita.ai
+- **GitHub**: https://github.com/seulkikangkc-design/youtube-maker
 - **프로젝트 위치**: `/home/user/webapp`
 
 ## ✨ 주요 기능
@@ -22,11 +23,10 @@ YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을
    - JWT 토큰 기반 세션 관리
    - 가입 시 1000 크레딧 자동 지급
 
-2. **🔥 트렌드 키워드 추천 (NEW!)**
+2. **🔥 트렌드 키워드 추천**
    - YouTube Trending API 기반 실시간 트렌드 분석
    - 카테고리별 인기 키워드 추천
    - 클릭 한 번으로 키워드 자동 입력
-   - 수동 새로고침 가능
 
 3. **키워드 분석**
    - YouTube Data API를 통한 경쟁도 분석
@@ -34,13 +34,16 @@ YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을
    - 영상 콘셉트 아이디어 3개 제안
    - Hook Line (첫 3초) 자동 생성
 
-4. **🎬 영상 생성 (NEW!)**
-   - AI 분석 기반 영상 자동 생성
-   - 썸네일 자동 생성
-   - 영상 URL 데이터베이스 저장
+4. **🎨 썸네일 자동 생성 (NEW!)**
+   - Google AI Studio Imagen 3 기반 실제 이미지 생성
+   - 16:9 비율 최적화
+   - 자극적이고 볼드한 한글 제목 포함
+   - 오브제 + 제목 조합
+   - 50 크레딧 소모
 
 5. **크레딧 시스템**
-   - 영상 생성 시 100 크레딧 자동 차감
+   - 썸네일 생성 시 50 크레딧 차감
+   - 영상 로그 생성 시 100 크레딧 차감
    - 원자적 트랜잭션으로 안전한 크레딧 관리
    - 최대 10개 영상 생성 제한
    - 모든 크레딧 변경 로그 기록
@@ -53,30 +56,47 @@ YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을
 
 ### 아직 구현되지 않은 기능
 
-- 실제 영상 생성 API 연동 (현재 placeholder - GenSpark API 연동 필요)
-- YouTube 자동 업로드
 - 결제 시스템 (Payment)
 - 팀 계정 기능
 - 다국어 지원
 
-## 🎥 Gemini API 통합 상세
+## 🎨 썸네일 생성 상세
 
-### JSON 모드 사용
-- `responseMimeType: "application/json"` 설정으로 순수 JSON 응답 보장
-- 마크다운 코드 블록 파싱 불필요
-- 안정적인 데이터 처리
+### Google AI Studio API 통합
 
-### 분석 결과 구조
+**텍스트 분석**: `gemini-3.1-pro-preview`
+- YouTube 경쟁도 분석
+- 영상 콘셉트 제안
+- Hook Line 생성
+
+**이미지 생성**: `gemini-3-pro-image-preview`
+- 16:9 비율 (1920x1080)
+- 자극적이고 볼드한 한글 제목
+- 고품질 JPEG/PNG 이미지
+- Base64 인코딩 직접 반환
+
+### 썸네일 프롬프트 구조
+```
+- 16:9 ratio (YouTube 최적화)
+- Eye-catching main object/subject
+- LARGE, BOLD Korean text prominently displayed
+- High contrast colors (vibrant and attention-grabbing)
+- Professional, clean design
+- Dramatic lighting or visual effects
+```
+
+### 생성 결과 예시
 ```json
 {
-  "worthCreating": true,
-  "reasoning": "상세한 분석 및 추천 근거",
-  "videoConcepts": [
-    "콘셉트 1: 구체적인 영상 아이디어",
-    "콘셉트 2: 대안적 접근 방식",
-    "콘셉트 3: 차별화 전략"
-  ],
-  "hookLine": "시청자의 관심을 끄는 첫 3초 대사"
+  "success": true,
+  "thumbnail": {
+    "imageUrl": "data:image/jpeg;base64,/9j/4AAQ...",
+    "prompt": "YouTube thumbnail for 무선 이어폰...",
+    "model": "gemini-3-pro-image-preview"
+  },
+  "keyword": "무선 이어폰",
+  "hookLine": "🔥 가성비 최고 무선 이어폰 TOP 5",
+  "creditsDeducted": 50
 }
 ```
 
@@ -106,16 +126,27 @@ YouTube에 소개 영상이 부족하지만 수요는 증가 중인 아이템을
 - **Authentication**: JWT (Web Crypto API)
 - **External APIs**: 
   - YouTube Data API v3
-  - Google Gemini API (gemini-2.5-flash with JSON mode)
+  - Google AI Studio API (Gemini + Imagen)
+    - `gemini-3.1-pro-preview` - 텍스트 분석
+    - `gemini-3-pro-image-preview` - 이미지 생성
+
+## 💰 크레딧 시스템
+
+| 기능 | 크레딧 | 설명 |
+|------|--------|------|
+| 가입 보너스 | +1,000 | 최초 가입 시 자동 지급 |
+| 키워드 분석 | 무료 | YouTube + Gemini 분석 |
+| 썸네일 생성 | -50 | Google AI Studio Imagen 3 |
+| 영상 로그 생성 | -100 | 데이터베이스 저장 |
 
 ## 📖 사용 방법
 
 ### 일반 사용자
 
 1. **회원가입**: 이메일과 비밀번호로 가입 (1000 크레딧 자동 지급)
-2. **키워드 입력**: 분석하고 싶은 키워드 입력 (예: "무선 이어폰 추천")
-3. **분석 결과 확인**: YouTube 경쟁도 + AI 판단 결과 확인
-4. **영상 생성**: 추천된 경우 100 크레딧으로 영상 생성
+2. **키워드 입력**: 분석하고 싶은 키워드 입력 (예: "무선 이어폰")
+3. **분석 결과 확인**: YouTube 경쟁도 + AI 판단 + Hook Line 확인
+4. **썸네일 생성**: 50 크레딧으로 자극적인 한글 제목 썸네일 생성
 
 ### 관리자
 
@@ -137,19 +168,16 @@ npm run db:migrate:local
 # 빌드
 npm run build
 
-# 개발 서버 시작
-npm run dev:sandbox
-
-# PM2로 데몬 실행
+# 개발 서버 시작 (PM2)
 pm2 start ecosystem.config.cjs
 ```
 
 ### 환경 변수 (.dev.vars)
 
 ```env
-YOUTUBE_API_KEY=your_youtube_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
-JWT_SECRET=your_secure_jwt_secret_here
+YOUTUBE_API_KEY=AIzaSyAyzofYWPyAWlCSqetVsvlnErGwqTm2EZg
+GEMINI_API_KEY=AIzaSyBHQDk9TytR7irprJr2nCuAls8Ymj8qhqM
+JWT_SECRET=super-secret-jwt-key-change-in-production
 ```
 
 **⚠️ 중요**: 
@@ -163,7 +191,7 @@ JWT_SECRET=your_secure_jwt_secret_here
 
 1. **D1 데이터베이스 생성**
 ```bash
-npx wrangler d1 create video-finder-production
+npx wrangler d1 create youtube-thumbnail-maker-production
 # 출력된 database_id를 wrangler.jsonc에 추가
 ```
 
@@ -193,11 +221,13 @@ webapp/
 │   ├── types.ts               # TypeScript 타입 정의
 │   ├── routes/
 │   │   ├── auth.ts            # 인증 라우트
-│   │   ├── api.ts             # API 라우트
+│   │   ├── api.ts             # API 라우트 (썸네일 생성 포함)
 │   │   └── admin.ts           # 관리자 라우트
 │   ├── services/
 │   │   ├── youtube.ts         # YouTube API 서비스
-│   │   └── gemini.ts          # Gemini API 서비스
+│   │   ├── gemini.ts          # Gemini 텍스트 분석
+│   │   ├── gemini-media.ts    # Imagen 이미지 생성
+│   │   └── trending.ts        # 트렌드 키워드
 │   ├── middleware/
 │   │   └── auth.ts            # 인증 미들웨어
 │   └── utils/
@@ -208,7 +238,7 @@ webapp/
 │   └── admin.js               # 관리자 페이지 로직
 ├── migrations/
 │   └── 0001_initial_schema.sql # 데이터베이스 스키마
-├── .dev.vars                  # 로컬 환경 변수
+├── .dev.vars                  # 로컬 환경 변수 (Git 제외)
 ├── wrangler.jsonc             # Cloudflare 설정
 └── package.json               # 프로젝트 설정
 ```
@@ -218,7 +248,7 @@ webapp/
 1. **첫 번째 테스트 계정 생성**
    - 회원가입 후 테스트
    - 키워드 분석 테스트
-   - 영상 생성 테스트
+   - 썸네일 생성 테스트
 
 2. **관리자 권한 부여**
    - 데이터베이스에 직접 접근하여 role을 'admin'으로 변경
@@ -238,33 +268,36 @@ webapp/
 - `.dev.vars` 파일은 절대 Git에 커밋하지 마세요
 - 프로덕션에서는 강력한 JWT_SECRET 사용
 - API 키는 Cloudflare Secrets로 관리
-- 정기적인 크레딧 로그 모니터링
+- Google AI Studio API 키는 유출 시 즉시 재발급
 
 ## 📊 시스템 상태
 
 - ✅ 인증 시스템: 완료
 - ✅ YouTube API 통합: 완료
-- ✅ Gemini API 통합: 완료 (JSON 모드)
+- ✅ Gemini 텍스트 분석: 완료 (gemini-3.1-pro-preview)
+- ✅ **Imagen 이미지 생성: 완료 (gemini-3-pro-image-preview)**
 - ✅ 트렌드 키워드 추천: 완료
 - ✅ 크레딧 시스템: 완료
 - ✅ 관리자 패널: 완료
 - ✅ Frontend UI: 완료
-- ⏸️ 실제 영상 생성: Mock 구현 (GenSpark API 연동 필요)
-- ⏸️ 결제 시스템: 미구현
 
 ## 🐛 최근 수정 사항
 
-### 2026-01-27 오후
+### 2026-02-24
+- ✅ **YouTube Thumbnail Maker로 전환**
+  - 영상 생성 기능 제거 (Veo는 async API 필요)
+  - 썸네일 자동 생성 기능 추가
+  - Google AI Studio Imagen 3 실제 작동 확인
+  - 16:9 비율 + 한글 제목 최적화
+  - UI/UX 업데이트 (브랜딩 변경)
+
+### 2026-01-27
 - ✅ Gemini JSON 파싱 안정화
-  - `responseMimeType: "application/json"` 적용
-  - 마크다운 코드 블록 파싱 제거
-  - 순수 JSON 응답으로 파싱 안정성 향상
 - ✅ 트렌드 키워드 추천 기능 추가
-- ✅ 영상 생성 플로우 구현 (Mock)
 - ✅ 정적 파일 서빙 문제 해결
 
 ## 🤝 기여
 
 - **개발**: Claude (AI Assistant)
 - **PRD**: 슬기님
-- **마지막 업데이트**: 2026-01-27
+- **마지막 업데이트**: 2026-02-24
