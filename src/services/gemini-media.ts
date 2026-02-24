@@ -28,7 +28,7 @@ export async function generateImageWithGemini(
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Generate an image: ${prompt}. 16:9 aspect ratio, high quality, professional.`
+            text: `${prompt}`
           }]
         }],
         generationConfig: {
@@ -39,29 +39,32 @@ export async function generateImageWithGemini(
       })
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Imagen API error:', response.status, errorText);
+      throw new Error(`Imagen API error: ${response.status}`);
+    }
+
     const data = await response.json();
     
-    if (response.ok) {
-      // Check for image data in various possible response formats
-      const imageData = 
-        data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data ||
-        data.candidates?.[0]?.content?.parts?.[0]?.imageData?.bytesBase64Encoded ||
-        data.predictions?.[0]?.bytesBase64Encoded;
+    // Extract image data from response
+    const imageData = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    const mimeType = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType || 'image/jpeg';
+    
+    if (imageData) {
+      const imageUrl = `data:${mimeType};base64,${imageData}`;
       
-      if (imageData) {
-        const imageUrl = `data:image/png;base64,${imageData}`;
-        
-        console.log('✅ Image generated successfully with gemini-3-pro-image-preview');
-        
-        return {
-          imageUrl,
-          prompt,
-          model: 'gemini-3-pro-image-preview'
-        };
-      }
+      console.log('✅ Image generated successfully with gemini-3-pro-image-preview');
+      console.log('Image size:', imageData.length, 'bytes');
+      
+      return {
+        imageUrl,
+        prompt,
+        model: 'gemini-3-pro-image-preview'
+      };
     }
     
-    console.warn('⚠️ Imagen response:', JSON.stringify(data).substring(0, 300));
+    console.warn('⚠️ No image data in response');
     throw new Error('No image data in response');
     
   } catch (error) {
@@ -101,7 +104,7 @@ export async function generateVideoWithGemini(
       body: JSON.stringify({
         contents: [{
           parts: [{
-            text: `Generate a 5-second vertical video (9:16 aspect ratio) for YouTube Shorts: ${prompt}. High quality, engaging, professional.`
+            text: `Generate a 5-second vertical video (9:16 aspect ratio) for YouTube Shorts: ${prompt}`
           }]
         }],
         generationConfig: {
@@ -112,40 +115,46 @@ export async function generateVideoWithGemini(
       })
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Veo API error:', response.status, errorText);
+      throw new Error(`Veo API error: ${response.status}`);
+    }
+
     const data = await response.json();
     
-    if (response.ok) {
-      // Check for video data in various possible response formats
-      const videoData = 
-        data.candidates?.[0]?.content?.parts?.[0]?.videoData?.videoUri ||
-        data.candidates?.[0]?.content?.parts?.[0]?.videoUrl ||
-        data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    // Check for video data in response
+    const videoData = 
+      data.candidates?.[0]?.content?.parts?.[0]?.videoData?.videoUri ||
+      data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data ||
+      data.predictions?.[0]?.videoUri;
+    
+    if (videoData) {
+      let videoUrl: string;
       
-      if (videoData) {
-        // If it's a URL, use directly
-        if (videoData.startsWith('http')) {
-          console.log('✅ Video generated successfully with veo-3.1-generate-preview');
-          
-          return {
-            videoUrl: videoData,
-            prompt,
-            model: 'veo-3.1-generate-preview'
-          };
-        }
-        // If it's base64, convert to data URL
-        else {
-          console.log('✅ Video generated successfully with veo-3.1-generate-preview (base64)');
-          
-          return {
-            videoUrl: `data:video/mp4;base64,${videoData}`,
-            prompt,
-            model: 'veo-3.1-generate-preview'
-          };
-        }
+      // If it's a URL, use directly
+      if (typeof videoData === 'string' && videoData.startsWith('http')) {
+        videoUrl = videoData;
       }
+      // If it's base64, convert to data URL
+      else if (typeof videoData === 'string') {
+        const mimeType = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType || 'video/mp4';
+        videoUrl = `data:${mimeType};base64,${videoData}`;
+      } else {
+        throw new Error('Invalid video data format');
+      }
+      
+      console.log('✅ Video generated successfully with veo-3.1-generate-preview');
+      console.log('Video URL:', videoUrl.substring(0, 100));
+      
+      return {
+        videoUrl,
+        prompt,
+        model: 'veo-3.1-generate-preview'
+      };
     }
     
-    console.warn('⚠️ Veo response:', JSON.stringify(data).substring(0, 300));
+    console.warn('⚠️ No video data in response');
     throw new Error('No video data in response');
     
   } catch (error) {

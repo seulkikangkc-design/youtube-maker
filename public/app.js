@@ -34,7 +34,7 @@ function showAuth() {
             <div class="bg-white rounded-2xl shadow-xl p-8">
                 <div class="text-center mb-8">
                     <i class="fas fa-video text-5xl text-blue-600 mb-4"></i>
-                    <h1 class="text-3xl font-bold text-gray-800 mb-2">Video Finder</h1>
+                    <h1 class="text-3xl font-bold text-gray-800 mb-2">🎨 YouTube Thumbnail Maker</h1>
                     <p class="text-gray-600">경쟁이 적은 영상 아이템을 찾아드립니다</p>
                 </div>
                 
@@ -174,7 +174,7 @@ async function showDashboard() {
                         <div>
                             <h1 class="text-3xl font-bold text-gray-800 mb-2">
                                 <i class="fas fa-video mr-2 text-blue-600"></i>
-                                Video Finder Dashboard
+                                YouTube Thumbnail Maker
                             </h1>
                             <p class="text-gray-600">${currentUser.email}</p>
                         </div>
@@ -330,29 +330,22 @@ async function analyzeKeyword(event) {
             </div>`
             : '';
         
-        // 미디어 생성 버튼 (활성화)
+        // 썸네일 생성 버튼 (활성화)
         const mediaButtons = `
             <div class="bg-gradient-to-r from-pink-50 to-purple-50 border border-purple-200 rounded-xl p-6 mb-4">
                 <h4 class="font-bold text-gray-800 mb-3">
                     <i class="fas fa-magic text-purple-600 mr-2"></i>
-                    AI 이미지/영상 생성
+                    🎨 유튜브 썸네일 생성
                 </h4>
                 <p class="text-sm text-gray-600 mb-4">
-                    Vertex AI Imagen 3으로 썸네일을 생성하거나 Veo 2로 짧은 영상을 만들어보세요!
+                    Google AI Studio Imagen으로 16:9 비율의 자극적인 한글 제목이 포함된 썸네일을 생성하세요!
                 </p>
-                <div class="grid grid-cols-2 gap-4">
-                    <button onclick="generateImage()" id="generateImageBtn"
-                        class="py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-md">
-                        <i class="fas fa-image mr-2"></i>
-                        이미지 생성 (50 크레딧)
-                    </button>
-                    <button onclick="generateVideoMedia()" id="generateVideoBtn"
-                        class="py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-bold hover:from-purple-600 hover:to-indigo-600 transition shadow-md">
-                        <i class="fas fa-film mr-2"></i>
-                        영상 생성 (200 크레딧)
-                    </button>
-                </div>
-                <div id="mediaResult" class="mt-4"></div>
+                <button onclick="generateThumbnail()" id="generateThumbnailBtn"
+                    class="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-md">
+                    <i class="fas fa-image mr-2"></i>
+                    썸네일 생성 (50 크레딧)
+                </button>
+                <div id="thumbnailResult" class="mt-4"></div>
             </div>
         `;
         
@@ -455,90 +448,67 @@ async function createVideo() {
 }
 
 // Generate image using Gemini Imagen 3
-async function generateImage() {
+// Generate YouTube thumbnail with Korean text
+async function generateThumbnail() {
     if (!currentAnalysis) return;
     
-    const btn = document.getElementById('generateImageBtn');
-    const mediaResult = document.getElementById('mediaResult');
+    const btn = document.getElementById('generateThumbnailBtn');
+    const thumbnailResult = document.getElementById('thumbnailResult');
     
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>생성 중...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>썸네일 생성 중...';
     
     try {
-        const prompt = `Create a high-quality thumbnail image for a YouTube video about: ${currentAnalysis.keyword}. 
-Style: Eye-catching, professional, with bold text overlay. Korean market appeal.`;
+        const { keyword, analysis } = currentAnalysis;
+        const { gemini } = analysis;
+        const hookLine = gemini.hookLine || keyword;
         
-        console.log('🎨 Generating image with prompt:', prompt);
+        console.log('🎨 Generating YouTube thumbnail');
+        console.log('Keyword:', keyword);
+        console.log('Hook line:', hookLine);
         
-        const res = await axios.post(`${API_BASE}/api/media/image`, { prompt });
+        const res = await axios.post(`${API_BASE}/api/media/thumbnail`, { 
+            keyword, 
+            hookLine 
+        });
         
-        console.log('✅ Image generated:', res.data);
+        console.log('✅ Thumbnail generated:', res.data);
         
-        mediaResult.innerHTML = `
-            <div class="bg-white rounded-xl p-6 shadow-lg">
+        thumbnailResult.innerHTML = `
+            <div class="bg-white rounded-xl p-6 shadow-lg mt-4">
                 <h4 class="font-bold text-gray-800 mb-4">
-                    <i class="fas fa-image text-pink-600 mr-2"></i>생성된 이미지
+                    <i class="fas fa-image text-pink-600 mr-2"></i>생성된 유튜브 썸네일
                 </h4>
-                <img src="${res.data.image.imageUrl}" class="w-full rounded-lg shadow-md" alt="Generated Image">
-                <p class="text-sm text-gray-600 mt-4">크레딧 차감: ${res.data.creditsDeducted}</p>
+                <div class="space-y-4">
+                    <img src="${res.data.thumbnail.imageUrl}" class="w-full rounded-lg shadow-md border-2 border-gray-200" alt="YouTube Thumbnail">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <p class="text-gray-600 mb-1">키워드</p>
+                            <p class="font-bold text-gray-800">${res.data.keyword}</p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <p class="text-gray-600 mb-1">제목 텍스트</p>
+                            <p class="font-bold text-gray-800">${res.data.hookLine}</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600">
+                        <i class="fas fa-coins text-yellow-500 mr-1"></i>
+                        크레딧 차감: ${res.data.creditsDeducted}
+                    </p>
+                </div>
             </div>
         `;
-        mediaResult.classList.remove('hidden');
+        thumbnailResult.classList.remove('hidden');
         
         // Refresh credits
         await updateCredits();
         
     } catch (error) {
-        console.error('❌ Image generation error:', error);
-        alert(error.response?.data?.error || '이미지 생성 실패');
+        console.error('❌ Thumbnail generation error:', error);
+        alert(error.response?.data?.error || '썸네일 생성 실패');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-image mr-2"></i>이미지 생성 (50 크레딧)';
-    }
-}
-
-// Generate video using Gemini Veo 2
-async function generateVideoMedia() {
-    if (!currentAnalysis) return;
-    
-    const btn = document.getElementById('generateVideoBtn');
-    const mediaResult = document.getElementById('mediaResult');
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>생성 중 (30-60초)...';
-    
-    try {
-        const { gemini } = currentAnalysis.analysis;
-        const prompt = `Create a 5-second vertical video (9:16) for YouTube Shorts about: ${currentAnalysis.keyword}.
-Hook: ${gemini.hookLine}
-Style: Dynamic, attention-grabbing, professional quality.`;
-        
-        console.log('🎬 Generating video with prompt:', prompt);
-        
-        const res = await axios.post(`${API_BASE}/api/media/video`, { prompt });
-        
-        console.log('✅ Video generated:', res.data);
-        
-        mediaResult.innerHTML = `
-            <div class="bg-white rounded-xl p-6 shadow-lg">
-                <h4 class="font-bold text-gray-800 mb-4">
-                    <i class="fas fa-film text-purple-600 mr-2"></i>생성된 영상
-                </h4>
-                <video src="${res.data.video.videoUrl}" controls class="w-full rounded-lg shadow-md" style="max-height: 500px;"></video>
-                <p class="text-sm text-gray-600 mt-4">크레딧 차감: ${res.data.creditsDeducted}</p>
-            </div>
-        `;
-        mediaResult.classList.remove('hidden');
-        
-        // Refresh credits
-        await updateCredits();
-        
-    } catch (error) {
-        console.error('❌ Video generation error:', error);
-        alert(error.response?.data?.error || '영상 생성 실패');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-film mr-2"></i>영상 생성 (200 크레딧)';
+        btn.innerHTML = '<i class="fas fa-image mr-2"></i>썸네일 생성 (50 크레딧)';
     }
 }
 

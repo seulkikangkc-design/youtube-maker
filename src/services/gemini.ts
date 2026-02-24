@@ -105,15 +105,29 @@ If not worth creating, set worthCreating to false, videoConcepts to [], hookLine
         throw new Error('No response from Gemini API');
       }
 
-      let text = data.candidates[0].content.parts[0].text;
+      let text = data.candidates[0].content.parts[0].text.trim();
       
       // Safety: Remove markdown code blocks if present
       // Handles: ```json { ... } ``` or ``` { ... } ```
-      text = text.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+      text = text.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '').trim();
       
-      console.log('Gemini raw response:', text.substring(0, 100) + '...');
+      console.log('Gemini raw response:', text.substring(0, 200));
       
-      const analysis = JSON.parse(text) as GeminiAnalysis;
+      let analysis: GeminiAnalysis;
+      
+      try {
+        analysis = JSON.parse(text) as GeminiAnalysis;
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        console.error('❌ Raw text:', text);
+        // Return safe fallback
+        return {
+          worthCreating: false,
+          reasoning: 'Unable to analyze due to API response format error. Please try again.',
+          videoConcepts: [],
+          hookLine: ''
+        };
+      }
       
       // Validate response structure
       if (typeof analysis.worthCreating !== 'boolean') {

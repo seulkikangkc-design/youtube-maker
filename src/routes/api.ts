@@ -188,16 +188,16 @@ api.get('/videos', authMiddleware, async (c) => {
   }
 })
 
-// POST /api/media/image - Generate image using Vertex AI Imagen 3
-api.post('/media/image', authMiddleware, async (c) => {
+// POST /api/media/thumbnail - Generate YouTube thumbnail with Korean text
+api.post('/media/thumbnail', authMiddleware, async (c) => {
   const authContext = c as AuthContext;
   const userPayload = authContext.get('user');
   
   try {
-    const { prompt } = await c.req.json();
+    const { keyword, hookLine } = await c.req.json();
     
-    if (!prompt || typeof prompt !== 'string') {
-      return c.json({ error: 'Prompt is required' }, 400);
+    if (!keyword || typeof keyword !== 'string') {
+      return c.json({ error: 'Keyword is required' }, 400);
     }
     
     // Get current user
@@ -209,18 +209,38 @@ api.post('/media/image', authMiddleware, async (c) => {
       return c.json({ error: 'User not found' }, 404);
     }
     
-    // Check credits (50 credits for image generation)
+    // Check credits (50 credits for thumbnail generation)
     if (user.credits < 50) {
       return c.json({ 
-        error: 'Insufficient credits. You need at least 50 credits for image generation.' 
+        error: 'Insufficient credits. You need at least 50 credits for thumbnail generation.' 
       }, 400);
     }
     
-    console.log('🎨 Generating image for user:', userPayload.email);
+    console.log('🎨 Generating YouTube thumbnail for user:', userPayload.email);
+    console.log('Keyword:', keyword);
+    console.log('Hook line:', hookLine || 'Auto-generated');
     
-    // Generate image using Gemini API
+    // Create optimized YouTube thumbnail prompt
+    const thumbnailPrompt = `Create a professional YouTube thumbnail in 16:9 aspect ratio.
+
+Topic: ${keyword}
+Title text (in BOLD Korean): ${hookLine || keyword}
+
+Requirements:
+- 16:9 ratio (1920x1080 or 1280x720)
+- Eye-catching main object/subject related to "${keyword}"
+- LARGE, BOLD Korean text "${hookLine || keyword}" prominently displayed
+- High contrast colors (vibrant and attention-grabbing)
+- Professional, clean design
+- Text should be clearly readable even at small sizes
+- Dramatic lighting or visual effects
+- No English text, Korean only
+
+Style: Modern, professional YouTube thumbnail optimized for clicks`;
+    
+    // Generate thumbnail using Google AI Studio (Imagen)
     const imageResult = await generateImageWithGemini(
-      prompt,
+      thumbnailPrompt,
       c.env.GEMINI_API_KEY
     );
     
@@ -233,85 +253,23 @@ api.post('/media/image', authMiddleware, async (c) => {
       c.env.DB.prepare(`
         INSERT INTO credit_logs (user_id, change_amount, reason)
         VALUES (?, -50, ?)
-      `).bind(userPayload.userId, `Image generation: ${prompt.substring(0, 50)}...`)
+      `).bind(userPayload.userId, `Thumbnail generation: ${keyword}`)
     ];
     
     await c.env.DB.batch(statements);
     
     return c.json({
       success: true,
-      image: imageResult,
+      thumbnail: imageResult,
+      keyword,
+      hookLine: hookLine || keyword,
       creditsDeducted: 50
     });
     
   } catch (error) {
-    console.error('Image generation error:', error);
+    console.error('Thumbnail generation error:', error);
     return c.json({ 
-      error: 'Failed to generate image. Please try again.' 
-    }, 500);
-  }
-})
-
-// POST /api/media/video - Generate video using Vertex AI Veo 2
-api.post('/media/video', authMiddleware, async (c) => {
-  const authContext = c as AuthContext;
-  const userPayload = authContext.get('user');
-  
-  try {
-    const { prompt } = await c.req.json();
-    
-    if (!prompt || typeof prompt !== 'string') {
-      return c.json({ error: 'Prompt is required' }, 400);
-    }
-    
-    // Get current user
-    const user = await c.env.DB.prepare(
-      'SELECT credits FROM users WHERE id = ?'
-    ).bind(userPayload.userId).first() as Pick<User, 'credits'> | null;
-    
-    if (!user) {
-      return c.json({ error: 'User not found' }, 404);
-    }
-    
-    // Check credits (200 credits for video generation)
-    if (user.credits < 200) {
-      return c.json({ 
-        error: 'Insufficient credits. You need at least 200 credits for video generation.' 
-      }, 400);
-    }
-    
-    console.log('🎬 Generating video for user:', userPayload.email);
-    
-    // Generate video using Gemini API
-    const videoResult = await generateVideoWithGemini(
-      prompt,
-      c.env.GEMINI_API_KEY
-    );
-    
-    // Deduct 200 credits
-    const statements = [
-      c.env.DB.prepare(
-        'UPDATE users SET credits = credits - 200 WHERE id = ?'
-      ).bind(userPayload.userId),
-      
-      c.env.DB.prepare(`
-        INSERT INTO credit_logs (user_id, change_amount, reason)
-        VALUES (?, -200, ?)
-      `).bind(userPayload.userId, `Video generation: ${prompt.substring(0, 50)}...`)
-    ];
-    
-    await c.env.DB.batch(statements);
-    
-    return c.json({
-      success: true,
-      video: videoResult,
-      creditsDeducted: 200
-    });
-    
-  } catch (error) {
-    console.error('Video generation error:', error);
-    return c.json({ 
-      error: 'Failed to generate video. Please try again.' 
+      error: 'Failed to generate thumbnail. Please try again.' 
     }, 500);
   }
 })
@@ -333,7 +291,8 @@ api.get('/credits', authMiddleware, async (c) => {
     return c.json({
       credits: user.credits,
       videosCreated: user.videos_created,
-      canCreateVideo: user.credits >= 200 && user.videos_created < 10
+      canCreateVideo: user.credits >= 100 && user.videos_created < 10,
+      canCreateThumbnail: user.credits >= 50
     });
     
   } catch (error) {
