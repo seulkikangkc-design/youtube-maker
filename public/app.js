@@ -179,19 +179,11 @@ async function showDashboard() {
                             <p class="text-gray-600">${currentUser.email}</p>
                         </div>
                         <div class="text-right">
-                            <div class="flex items-center gap-6 mb-2">
-                                <div>
-                                    <span class="text-sm text-gray-600">크레딧</span>
-                                    <p class="text-2xl font-bold text-blue-600">
-                                        <i class="fas fa-coins mr-1"></i>${credits}
-                                    </p>
-                                </div>
-                                <div>
-                                    <span class="text-sm text-gray-600">생성 영상</span>
-                                    <p class="text-2xl font-bold text-purple-600">
-                                        <i class="fas fa-film mr-1"></i>${videosCreated}/10
-                                    </p>
-                                </div>
+                            <div class="mb-2">
+                                <span class="text-sm text-gray-600">크레딧</span>
+                                <p class="text-2xl font-bold text-blue-600">
+                                    <i class="fas fa-coins mr-1"></i>${credits}
+                                </p>
                             </div>
                             <button onclick="logout()" class="text-sm text-gray-600 hover:text-red-600">
                                 <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
@@ -338,7 +330,7 @@ async function analyzeKeyword(event) {
                     🎨 유튜브 썸네일 생성
                 </h4>
                 <p class="text-sm text-gray-600 mb-4">
-                    Google AI Studio Imagen으로 16:9 비율의 자극적인 한글 제목이 포함된 썸네일을 생성하세요!
+                    AI가 자동으로 16:9 비율의 자극적인 한글 제목이 포함된 썸네일을 생성합니다!
                 </p>
                 <button onclick="generateThumbnail()" id="generateThumbnailBtn"
                     class="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-bold hover:from-pink-600 hover:to-rose-600 transition shadow-md">
@@ -349,13 +341,7 @@ async function analyzeKeyword(event) {
             </div>
         `;
         
-        const createButton = gemini.worthCreating
-            ? `<button onclick="createVideo()" id="createVideoBtn"
-                class="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:from-blue-700 hover:to-purple-700 transition shadow-lg">
-                <i class="fas fa-video mr-2"></i>
-                영상 로그 생성 (100 크레딧 차감)
-            </button>`
-            : '';
+        const createButton = '';
         
         resultDiv.innerHTML = `
             <div class="space-y-6">
@@ -470,6 +456,8 @@ async function generateThumbnail() {
         const res = await axios.post(`${API_BASE}/api/media/thumbnail`, { 
             keyword, 
             hookLine 
+        }, {
+            timeout: 60000 // 60 seconds timeout for image generation
         });
         
         console.log('✅ Thumbnail generated:', res.data);
