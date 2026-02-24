@@ -1,4 +1,5 @@
-// Gemini API for Image and Video Generation
+// Google AI Studio API for Image and Video Generation
+// Uses Gemini's multimodal capabilities
 export interface GeminiMediaResult {
   imageUrl?: string;
   videoUrl?: string;
@@ -7,94 +8,19 @@ export interface GeminiMediaResult {
 }
 
 /**
- * Generate an image using Gemini API (Imagen 3)
- * Uses the same Gemini API key as text generation
+ * Generate an image using Google AI Studio (Imagen)
  */
 export async function generateImageWithGemini(
   prompt: string,
   apiKey: string
 ): Promise<GeminiMediaResult> {
-  console.log('🎨 Generating image with Gemini Imagen...');
+  console.log('🎨 Generating image with Google AI Studio...');
   console.log('Prompt:', prompt.substring(0, 100));
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`;
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '16:9'
-        }
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini Imagen error:', response.status, errorText);
-      
-      // Fallback to placeholder
-      console.warn('⚠️ Using placeholder image');
-      const width = 1920;
-      const height = 1080;
-      return {
-        imageUrl: `https://placehold.co/${width}x${height}/4F46E5/white?text=${encodeURIComponent(prompt.substring(0, 30))}`,
-        prompt,
-        model: 'placeholder (Imagen not available)'
-      };
-    }
-
-    const data = await response.json();
-    
-    if (data.predictions && data.predictions[0]?.bytesBase64Encoded) {
-      const base64Image = data.predictions[0].bytesBase64Encoded;
-      const imageUrl = `data:image/png;base64,${base64Image}`;
-      
-      console.log('✅ Image generated successfully');
-      
-      return {
-        imageUrl,
-        prompt,
-        model: 'imagen-3.0-generate-001'
-      };
-    }
-    
-    throw new Error('No image data in response');
-    
-  } catch (error) {
-    console.error('Gemini image generation error:', error);
-    
-    // Fallback to placeholder
-    const width = 1920;
-    const height = 1080;
-    return {
-      imageUrl: `https://placehold.co/${width}x${height}/4F46E5/white?text=${encodeURIComponent(prompt.substring(0, 30))}`,
-      prompt,
-      model: 'placeholder (error)'
-    };
-  }
-}
-
-/**
- * Generate a video using Gemini API (Veo)
- * Note: Veo might require special access
- */
-export async function generateVideoWithGemini(
-  prompt: string,
-  apiKey: string
-): Promise<GeminiMediaResult> {
-  console.log('🎬 Generating video with Gemini Veo...');
-  console.log('Prompt:', prompt.substring(0, 100));
-
-  // Try multiple Veo endpoints
+  // Try Imagen via Google AI Studio
   const endpoints = [
-    `https://generativelanguage.googleapis.com/v1beta/models/veo-001:generateContent?key=${apiKey}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/video-generation@001:predict?key=${apiKey}`
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/imagegeneration@006:predict?key=${apiKey}`,
   ];
 
   for (const endpoint of endpoints) {
@@ -105,13 +31,12 @@ export async function generateVideoWithGemini(
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95
+          instances: [{ prompt }],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: '16:9',
+            negativePrompt: 'blurry, low quality',
+            addWatermark: false
           }
         })
       });
@@ -119,15 +44,16 @@ export async function generateVideoWithGemini(
       if (response.ok) {
         const data = await response.json();
         
-        // Check for video data
-        if (data.candidates?.[0]?.content?.parts?.[0]?.videoUrl) {
-          const videoUrl = data.candidates[0].content.parts[0].videoUrl;
-          console.log('✅ Video generated successfully');
+        if (data.predictions?.[0]?.bytesBase64Encoded) {
+          const base64Image = data.predictions[0].bytesBase64Encoded;
+          const imageUrl = `data:image/png;base64,${base64Image}`;
+          
+          console.log('✅ Image generated successfully');
           
           return {
-            videoUrl,
+            imageUrl,
             prompt,
-            model: 'veo-001'
+            model: 'Google AI Studio Imagen'
           };
         }
       }
@@ -139,13 +65,120 @@ export async function generateVideoWithGemini(
     }
   }
 
+  // All endpoints failed - return placeholder
+  console.warn('⚠️ Imagen not accessible, using placeholder');
+  const width = 1920;
+  const height = 1080;
+  
+  return {
+    imageUrl: `https://placehold.co/${width}x${height}/4F46E5/white?text=${encodeURIComponent(prompt.substring(0, 30))}`,
+    prompt,
+    model: 'placeholder'
+  };
+}
+
+/**
+ * Generate a video using Google AI Studio (Veo)
+ */
+export async function generateVideoWithGemini(
+  prompt: string,
+  apiKey: string
+): Promise<GeminiMediaResult> {
+  console.log('🎬 Generating video with Google AI Studio...');
+  console.log('Prompt:', prompt.substring(0, 100));
+
+  // Try multiple Veo endpoints
+  const endpoints = [
+    // Veo 2 endpoint
+    {
+      url: `https://generativelanguage.googleapis.com/v1beta/models/veo-001:generateContent?key=${apiKey}`,
+      body: {
+        contents: [{
+          parts: [{
+            text: `Generate a 5-second vertical video (9:16 aspect ratio) for YouTube Shorts: ${prompt}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.9,
+          topK: 40,
+          topP: 0.95
+        }
+      }
+    },
+    // Alternative video generation endpoint
+    {
+      url: `https://generativelanguage.googleapis.com/v1beta/models/video-generation@001:predict?key=${apiKey}`,
+      body: {
+        instances: [{
+          prompt: prompt,
+          duration: 5,
+          aspectRatio: '9:16'
+        }],
+        parameters: {
+          sampleCount: 1
+        }
+      }
+    }
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`Trying endpoint: ${endpoint.url.split('?')[0]}`);
+      
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(endpoint.body)
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Check for video URL in response
+        const videoUrl = 
+          data.candidates?.[0]?.content?.parts?.[0]?.videoData?.videoUrl ||
+          data.candidates?.[0]?.content?.parts?.[0]?.videoUrl ||
+          data.predictions?.[0]?.videoUri ||
+          data.predictions?.[0]?.bytesBase64Encoded;
+        
+        if (videoUrl) {
+          console.log('✅ Video generated successfully');
+          
+          // If base64, convert to data URL
+          if (videoUrl.startsWith('data:') || videoUrl.startsWith('http')) {
+            return {
+              videoUrl,
+              prompt,
+              model: 'Google AI Studio Veo'
+            };
+          } else {
+            return {
+              videoUrl: `data:video/mp4;base64,${videoUrl}`,
+              prompt,
+              model: 'Google AI Studio Veo'
+            };
+          }
+        }
+      }
+      
+      console.warn(`Endpoint response:`, response.status, JSON.stringify(data).substring(0, 200));
+      
+    } catch (error) {
+      console.error(`Error with endpoint:`, error);
+    }
+  }
+
   // All endpoints failed - return sample video
-  console.warn('⚠️ Veo not accessible, using sample video');
+  console.warn('⚠️ Veo not yet available with this API key, using sample video');
+  console.warn('Note: Video generation may require Vertex AI or special access');
   
   const sampleVideos = [
     'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+    'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    'https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
   ];
   
   const videoUrl = sampleVideos[Math.floor(Math.random() * sampleVideos.length)];
