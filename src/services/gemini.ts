@@ -43,8 +43,8 @@ Recent videos (30 days): ${youtubeData.recentVideos}
 Analyze the competition and opportunity.
 If not worth creating, set worthCreating to false, videoConcepts to [], hookLine to "".`;
 
-      // Use gemini-2.5-flash (verified as available model)
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      // Use gemini-3.1-pro-preview (Google AI Studio model)
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent?key=${apiKey}`;
       
       const response = await fetch(url, {
         method: 'POST',
