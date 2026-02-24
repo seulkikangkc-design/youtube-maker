@@ -6,7 +6,7 @@ import { analyzeYouTubeCompetition } from '../services/youtube'
 import { analyzeWithGemini } from '../services/gemini'
 import { getTrendingKeywords } from '../services/trending'
 import { generateVideo } from '../services/video'
-import { generateVideoWithGenSpark, generateImageWithGenSpark } from '../services/genspark-media'
+import { generateImageWithGemini, generateVideoWithGemini } from '../services/gemini-media'
 
 const api = new Hono<{ Bindings: Bindings }>()
 
@@ -218,8 +218,11 @@ api.post('/media/image', authMiddleware, async (c) => {
     
     console.log('🎨 Generating image for user:', userPayload.email);
     
-    // Generate image (placeholder for now)
-    const imageResult = await generateImageWithGenSpark(prompt);
+    // Generate image using Gemini API
+    const imageResult = await generateImageWithGemini(
+      prompt,
+      c.env.GEMINI_API_KEY
+    );
     
     // Deduct 50 credits
     const statements = [
@@ -279,8 +282,11 @@ api.post('/media/video', authMiddleware, async (c) => {
     
     console.log('🎬 Generating video for user:', userPayload.email);
     
-    // Generate video (placeholder for now)
-    const videoResult = await generateVideoWithGenSpark(prompt);
+    // Generate video using Gemini API
+    const videoResult = await generateVideoWithGemini(
+      prompt,
+      c.env.GEMINI_API_KEY
+    );
     
     // Deduct 200 credits
     const statements = [
@@ -327,7 +333,7 @@ api.get('/credits', authMiddleware, async (c) => {
     return c.json({
       credits: user.credits,
       videosCreated: user.videos_created,
-      canCreateVideo: user.credits >= 100 && user.videos_created < 10
+      canCreateVideo: user.credits >= 200 && user.videos_created < 10
     });
     
   } catch (error) {

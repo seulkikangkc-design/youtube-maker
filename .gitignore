@@ -17,8 +17,13 @@ node_modules/
 
 # env
 .env
-.env.production
+.env.*
 .dev.vars
+*.vars
+*_KEY*
+*_SECRET*
+service-account*.json
+credentials*.json
 
 # logs
 logs/

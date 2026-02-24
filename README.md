@@ -147,10 +147,15 @@ pm2 start ecosystem.config.cjs
 ### 환경 변수 (.dev.vars)
 
 ```env
-YOUTUBE_API_KEY=AIzaSyAyzofYWPyAWlCSqetVsvlnErGwqTm2EZg
-GEMINI_API_KEY=AIzaSyBth8jSOTXe3m2PDW5-VW5_4fwhbm2_te8
-JWT_SECRET=super-secret-jwt-key-change-in-production
+YOUTUBE_API_KEY=your_youtube_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+JWT_SECRET=your_secure_jwt_secret_here
 ```
+
+**⚠️ 중요**: 
+- `.dev.vars` 파일은 Git에 커밋되지 않습니다 (`.gitignore`에 포함)
+- 실제 API 키는 별도로 안전하게 관리하세요
+- 프로덕션 배포 시 Cloudflare Secrets로 관리
 
 ## 📦 프로덕션 배포
 
